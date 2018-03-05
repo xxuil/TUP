@@ -32,13 +32,15 @@ public class BookServer{
 
         while(isOpen){
             socket.receive(dpget);
-            if(DEBUG){System.out.println("Server received data from client: ");}
+            if(DEBUG){System.out.println("Server receive: ");}
             String receive = new String(dpget.getData(), 0, dpget.getLength());
             int port = dpget.getPort();
             if(DEBUG){System.out.println(receive + " from " + dpget.getAddress().getHostAddress() + ": "
                     + dpget.getPort());}
 
             send = processCommand(receive);
+
+            if(DEBUG){System.out.println("Server send: " + send);}
 
             DatagramPacket dpsend = new DatagramPacket(send.getBytes(), send.length(),
                     dpget.getAddress(), dpget.getPort());
@@ -63,7 +65,12 @@ public class BookServer{
         }
         else if(parse[0].equals("borrow")){
             String name = parse[1];
-            String book = parse[2];
+            String book = "";
+
+            for(int i = 2; i < parse.length; i++){
+                book = book + parse[i] + " ";
+            }
+
             int result = storage.borrow(name, book);
             if(result != -1 && result != -2){
                 message = "You request has been approved " + result + " " + name + " " + book;
@@ -83,6 +90,7 @@ public class BookServer{
             }else{
                 message = id + " not found, no such borrow record";
             }
+            return message;
         }
 
         else if(parse[0].equals("list")){
@@ -97,6 +105,9 @@ public class BookServer{
                     message = message + o + " " + val +"\n";
                 }
             }
+            int i = message.lastIndexOf("\n");
+            message = message.substring(0, i);
+            return message;
         }
 
         else if(parse[0].equals("inventory")){
@@ -104,9 +115,10 @@ public class BookServer{
             Set<String> result = quantity.keySet();
             for(String good : result){
                 int val = quantity.get(good);
-                message = message + good + " " + val + "\n";
+                message = message + good + " " + val +"\n";
             }
-
+            int i = message.lastIndexOf("\n");
+            message = message.substring(0, i);
             return message;
         }
         else{
@@ -153,7 +165,7 @@ public class BookServer{
     }
 
     static class TCPHandler implements Runnable{
-        private int tcpPort;
+        private int tcpPort = 7000;
         @Override
         public void run(){
             try{

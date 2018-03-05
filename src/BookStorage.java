@@ -15,11 +15,12 @@ public class BookStorage {
         students = new ArrayList<>();
     }
     public synchronized int borrow(String stdname, String bookname){
+        if(!(inventory.containsKey(bookname))){
+            return -2;
+        }
         int numberleft = inventory.get(bookname);
         if(numberleft == 0){
             return -1;
-        }else if(inventory.get(bookname) == null){
-            return -2;
         }else{
             count++;
             Map<Integer, String> good = new HashMap<>();

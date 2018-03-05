@@ -3,6 +3,7 @@ import java.net.*;
 import java.util.Scanner;
 
 public class BookClient {
+    static boolean DEBUG = true;
     static Socket s;
     static InputStream instream;
     static OutputStream outstream;
@@ -39,46 +40,54 @@ public class BookClient {
         }catch(SocketException a){
             a.printStackTrace();
         }
-        PrintWriter write;
+        PrintStream write;
         try {
             Scanner sc = new Scanner(new FileReader(commandFile));
-            write = new PrintWriter("out_" + clientId + ".txt", "UTF-8");
+            write = new PrintStream("out_" + clientId + ".txt", "UTF-8");
 
             while(sc.hasNextLine()) {
                 String cmd = sc.nextLine();
                 String[] tokens = cmd.split(" ");
                 if (tokens[0].equals("setmode")) {
                     if(tokens[1].equals("T")){
-                        try {
-                            s = new Socket(hostAddress, tcpPort);
-                            instream = s.getInputStream();
-                            outstream = s.getOutputStream();
-                            in = new Scanner(instream);
-                            out = new PrintWriter(outstream);
-                            mode = "TCP";
-                        }catch (IOException e){
-                            e.printStackTrace();
-                        }
+                       mode = "TCP";
                     }else {
-
                         mode = "UDP";
                     }
                     // TODO: set the mode of communication for sending commands to the server
                 }else if (tokens[0].equals("exit")) {
-                    try {
-                        s.close();
-                    }catch (IOException e){
-                        e.printStackTrace();
+                    if (mode.equals("TCPd")){
+                        try {
+                            s.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
+                    else datasocket.close();
+
+                    System.exit(0);
+
                     // TODO: send appropriate command to the server
                 } else if ((!tokens[0].equals("borrow") && (!tokens[0].equals("return")) && (!tokens[0].equals("list")) && (!tokens[0].equals("inventory")))){
                     System.out.println("ERROR: No such command");
                 }
                 String response = "";
                 if(mode.equals("TCP")) {
+                    try {
+                        s = new Socket(hostAddress, tcpPort);
+                        instream = s.getInputStream();
+                        outstream = s.getOutputStream();
+                        in = new Scanner(instream);
+                        out = new PrintWriter(outstream);
+                        mode = "TCPd";
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }
+                } else if(mode.equals("TCPd")){
                     out.println(cmd);
                     out.flush();
                     response = in.nextLine(); //make a text file and put this string
+
                 }else {
                     byte[] buf = new byte[cmd.length()];
                     buf = cmd.getBytes();
@@ -88,16 +97,21 @@ public class BookClient {
                         rPacket = new DatagramPacket(rbuf, rbuf.length);
                         datasocket.receive(rPacket);
                         response = new String(rPacket.getData(), 0, rPacket.getLength());  //make a text file and put this string
+                        if(DEBUG){System.out.println(response);}
+
                     } catch (IOException a) {
                         a.printStackTrace();
                     }
                 }
                 write.println(response);
             }
+            System.setOut(write);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } catch (UnsupportedEncodingException e){
-            e.printStackTrace();
+        } catch (UnsupportedEncodingException ue){
+            ue.printStackTrace();
+        } catch (IOException ie){
+            ie.printStackTrace();
         }
     }
 }

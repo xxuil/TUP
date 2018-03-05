@@ -10,9 +10,8 @@ public class TCPServer extends BookServer implements Runnable {
             @SuppressWarnings("resource")
             ServerSocket serverSock = new ServerSocket(tcpPort);
             if(DEBUG){System.out.println("TCP established");}
-
-            while(isOpen){
-                Socket Tsocket = serverSock.accept();
+            Socket Tsocket;
+            while((Tsocket = serverSock.accept()) != null){
                 int port = Tsocket.getPort();
                 if(DEBUG){System.out.println("TCP connected from client: " + port);}
 
@@ -30,32 +29,35 @@ public class TCPServer extends BookServer implements Runnable {
     class ClientHandler implements Runnable{
         private Socket s;
         private PrintWriter writer;
-        private BufferedReader reader;
+        private Scanner reader;
 
         ClientHandler(Socket s, PrintWriter writer) throws IOException{
             this.s = s;
             this.writer = writer;
-            reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
         }
 
         @Override
         public void run(){
-            String message;
             try {
-                while (((message = reader.readLine()) != null)) {
-                    if(DEBUG) System.out.println(message);
-                    String ret = processCommand(message);
-                    writer.println(ret);
-                    writer.flush();
-
-                    if(s.isClosed()){
-                        break;
-                    }
-                }
-                if(DEBUG){System.out.println("TCP disconnect from client: " + s.getPort());}
-            } catch (IOException e) {
+                reader = new Scanner(s.getInputStream());
+            }catch (IOException e){
                 e.printStackTrace();
             }
+            String message;
+            while (reader.hasNext()) {
+                if(DEBUG) System.out.println("Server trying to receive message");
+                message = reader.nextLine();
+                if(DEBUG) System.out.println("Message from ClientHandler " + message);
+                String ret = processCommand(message);
+                if(DEBUG) System.out.println("Message output from ClientHandler " + ret);
+                writer.println(ret);
+                writer.flush();
+                if(DEBUG) System.out.println("Server sent message");
+                if(s.isClosed()){
+                    break;
+                }
+            }
+            if(DEBUG){System.out.println("TCP disconnect from client: " + s.getPort());}
         }
     }
 }

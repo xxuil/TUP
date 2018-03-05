@@ -82,7 +82,6 @@ public class BookServer{
                 dpget.setLength(byteLength);
             }
         }
-        socket.close();
     }
 
     protected static String processCommand(String command){
@@ -139,7 +138,7 @@ public class BookServer{
             String name = parse[1];
             Map<Integer, String> result = storage.list(name);
             if(storage.list(name) == null){
-                message = "No record found for " + name;
+                message = "No record found for " + name + "\n";
             }else{
                 Set<Integer> get = result.keySet();
                 for(Integer o : get){
@@ -168,9 +167,5 @@ public class BookServer{
             return "";
         }
         return "";
-    }
-
-    static class TCPHandler {
-
     }
 }

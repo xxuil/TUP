@@ -4,17 +4,49 @@ import java.util.*;
 
 public class BookServer{
     private final static boolean DEBUG = true;
-
     private static BookStorage storage;
-
     private int udpPort;
     private int byteLength;
     private static boolean isOpen;
-
     private static ArrayList<PrintWriter> oos = new ArrayList<>();
     private static ArrayList<String> clientNameList = new ArrayList<>();
     private static HashMap<String, Client> userMap = new HashMap<>();
 
+    public static void main (String[] args) throws Exception{
+        parseInput(args);
+        BookServer UDP = new BookServer();
+        UDP.setupUPD();
+    }
+
+    private static void parseInput(String[] args){
+        if (args.length != 1) {
+            System.out.println("ERROR: No Argument");
+            System.exit(-1);
+        }
+
+        Map<String, Integer> inventory = new HashMap<>();
+        String fileName = args[0];
+        String book = "";
+
+        try{
+            Scanner sc = new Scanner(new FileReader(fileName));
+            while(sc.hasNext()){
+                if(sc.hasNextInt()){
+                    int num = sc.nextInt();
+                    inventory.put(book, num);
+                    book = "";
+                }else {
+                    book = book.concat(sc.next());
+                    book = book + " ";
+                }
+            }
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+
+        storage = new BookStorage(inventory);
+    }
 
     public BookServer(){
         udpPort = 8000;
@@ -126,42 +158,6 @@ public class BookServer{
             return "";
         }
         return "";
-    }
-
-    public static void main (String[] args) throws Exception{
-        parseInput(args);
-        BookServer UDP = new BookServer();
-        UDP.setupUPD();
-    }
-
-    private static void parseInput(String[] args){
-        if (args.length != 1) {
-            System.out.println("ERROR: No Argument");
-            System.exit(-1);
-        }
-
-        Map<String, Integer> inventory = new HashMap<>();
-        String fileName = args[0];
-        String book = "";
-
-        try{
-            Scanner sc = new Scanner(new FileReader(fileName));
-            while(sc.hasNext()){
-                if(sc.hasNextInt()){
-                    int num = sc.nextInt();
-                    inventory.put(book, num);
-                    book = "";
-                }else {
-                    book = book.concat(sc.next());
-                    book = book + " ";
-                }
-            }
-        }
-        catch (FileNotFoundException e){
-            e.printStackTrace();
-        }
-
-        storage = new BookStorage(inventory);
     }
 
     static class TCPHandler implements Runnable{

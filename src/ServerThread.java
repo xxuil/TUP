@@ -15,8 +15,9 @@ public class ServerThread extends Thread{
     }
     @Override
     public void run(){
+        Scanner sc = null;
         try{
-            Scanner sc = new Scanner(s.getInputStream());
+            sc = new Scanner(s.getInputStream());
             PrintWriter write = new PrintWriter(s.getOutputStream());
             String input = sc.nextLine();
             Scanner sc1 = new Scanner(input);
@@ -29,7 +30,7 @@ public class ServerThread extends Thread{
                     write.println("You request has been approved " + result + " " + name + " " + book);
                 }else if(result == -1){
                     write.println("Request Failed - Book not available");
-                }else if(result == -2){
+                }else{
                     write.println("Request Failed - We do not have this book");
                 }
             }else if(tag.equals("return")) {
@@ -42,26 +43,34 @@ public class ServerThread extends Thread{
                 }
             }else if(tag.equals("list")){
                 String name = sc1.next();
+                String send = "";
                 Map<Integer, String> result = storage.list(name);
                 if(storage.list(name) == null){
                     write.println("No record found for " + name);
                 }else{
                     Set<Integer> get = result.keySet();
-                    for(Integer o = get){
+                    for(Integer o : get){
                         String val = result.get(o);
-                        write.println(o + " " + val);
+                        send = send + o + " " + val + "\n";
                     }
+                    write.println(send);
                 }
             }else if(tag.equals("inventory")){
+                String send = "";
                 Map<String, Integer> quantity = storage.inventory();
                 Set<String> result = quantity.keySet();
                 for(String good : result){
                     int val = quantity.get(good);
-                    write.println(good + " " + val);
+                    send = send + good + " " + val + "\n";
                 }
+                write.println(send);
             }
+            write.flush();
+            s.close();
         }catch(IOException e){
             e.printStackTrace();
+        }finally {
+            sc.close();
         }
     }
 }

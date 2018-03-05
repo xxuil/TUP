@@ -58,7 +58,7 @@ public class BookServer{
             ServerSocket server = new ServerSocket(tcpPort);
             Socket s;
             while ((s = server.accept()) != null) {
-                Thread t = new ServerThread(storage, s);
+                //Thread t = new ServerThread(storage, s);
             }
         }catch (Exception e){
             e.printStackTrace();

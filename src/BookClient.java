@@ -39,8 +39,11 @@ public class BookClient {
         }catch(SocketException a){
             a.printStackTrace();
         }
+        PrintWriter write;
         try {
             Scanner sc = new Scanner(new FileReader(commandFile));
+            write = new PrintWriter("out_" + clientId + ".txt", "UTF-8");
+
             while(sc.hasNextLine()) {
                 String cmd = sc.nextLine();
                 String[] tokens = cmd.split(" ");
@@ -57,6 +60,7 @@ public class BookClient {
                             e.printStackTrace();
                         }
                     }else {
+
                         mode = "UDP";
                     }
                     // TODO: set the mode of communication for sending commands to the server
@@ -67,7 +71,7 @@ public class BookClient {
                         e.printStackTrace();
                     }
                     // TODO: send appropriate command to the server
-                } else if (!(tokens[0].equals("borrow") && tokens[0].equals("return") && tokens[0].equals("list") && tokens[0].equals("inventory"))){
+                } else if ((!tokens[0].equals("borrow") && (!tokens[0].equals("return")) && (!tokens[0].equals("list")) && (!tokens[0].equals("inventory")))){
                     System.out.println("ERROR: No such command");
                 }
                 String response = "";
@@ -88,14 +92,11 @@ public class BookClient {
                         a.printStackTrace();
                     }
                 }
-                try {
-                    PrintWriter write = new PrintWriter("out_" + clientId + ".txt", "UTF-8");
-                    write.println(response);
-                }catch (UnsupportedEncodingException e){
-                    e.printStackTrace();
-                }
+                write.println(response);
             }
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e){
             e.printStackTrace();
         }
     }

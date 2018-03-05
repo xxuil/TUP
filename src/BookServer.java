@@ -3,14 +3,15 @@ import java.net.*;
 import java.util.*;
 
 public class BookServer{
-    private final static boolean DEBUG = true;
-    private static BookStorage storage;
+    protected final static boolean DEBUG = true;
+    protected static BookStorage storage;
     private int udpPort;
     private int byteLength;
-    private static boolean isOpen;
+    protected static boolean isOpen;
+    private static Thread TCP = null;
     private static ArrayList<PrintWriter> oos = new ArrayList<>();
     private static ArrayList<String> clientNameList = new ArrayList<>();
-    private static HashMap<String, Client> userMap = new HashMap<>();
+    //private static HashMap<String, Client> userMap = new HashMap<>();
 
     public static void main (String[] args) throws Exception{
         parseInput(args);
@@ -64,34 +65,43 @@ public class BookServer{
 
         while(isOpen){
             socket.receive(dpget);
-            if(DEBUG){System.out.println("Server receive: ");}
             String receive = new String(dpget.getData(), 0, dpget.getLength());
             int port = dpget.getPort();
-            if(DEBUG){System.out.println(receive + " from " + dpget.getAddress().getHostAddress() + ": "
-                    + dpget.getPort());}
+
+            if(DEBUG){System.out.println("Server receive: " + receive + " from " +
+                    dpget.getAddress().getHostAddress() + ": " + dpget.getPort());}
 
             send = processCommand(receive);
 
-            if(DEBUG){System.out.println("Server send: " + send);}
+            if(!send.equals("")){
+                if(DEBUG){System.out.println("Server send: " + send);}
 
-            DatagramPacket dpsend = new DatagramPacket(send.getBytes(), send.length(),
-                    dpget.getAddress(), dpget.getPort());
-            socket.send(dpsend);
-            dpget.setLength(byteLength);
-
+                DatagramPacket dpsend = new DatagramPacket(send.getBytes(), send.length(),
+                        dpget.getAddress(), dpget.getPort());
+                socket.send(dpsend);
+                dpget.setLength(byteLength);
+            }
         }
         socket.close();
     }
 
-    private static String processCommand(String command){
+    protected static String processCommand(String command){
         String message = "";
         String[] parse = command.split(" ");
-        if(parse[0].equals("setmode")) {
+
+        if(parse[0].equals("hello")){
+            if(DEBUG){System.out.println("Initial connection established");}
+        }
+
+        else if(parse[0].equals("setmode")) {
             if(parse[1].equals("U"))
                 return "U";
+
             else if(parse[1].equals("T")){
-                Thread TCP = new Thread(new TCPHandler());
-                TCP.start();
+                if (TCP == null) {
+                    TCP = new Thread(new TCPServer());
+                    TCP.start();
+                }
                 return "T";
             }
         }
@@ -160,26 +170,7 @@ public class BookServer{
         return "";
     }
 
-    static class TCPHandler implements Runnable{
-        private int tcpPort = 7000;
-        @Override
-        public void run(){
-            try{
-                @SuppressWarnings("resource")
-                ServerSocket serverSock = new ServerSocket(tcpPort);
-                if(DEBUG){System.out.println("TCP established");}
+    static class TCPHandler {
 
-                while(isOpen){
-                    Socket Tsocket = serverSock.accept();
-
-                    ServerThread client = new ServerThread(storage, Tsocket);
-                    Thread t = new Thread(client);
-                    t.start();
-                }
-            }
-            catch (Exception e){
-                e.printStackTrace();
-            }
-        }
     }
 }

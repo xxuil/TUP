@@ -1,25 +1,76 @@
 import java.io.*;
 import java.net.*;
-import java.util.Scanner;
+import java.util.*;
 
 public class BookClient {
-    static boolean DEBUG = true;
-    static Socket s;
-    static InputStream instream;
-    static OutputStream outstream;
-    static Scanner in;
-    static PrintWriter out;
-    static byte[] rbuf = new byte[1024];
-    static DatagramPacket sPacket, rPacket;
+    private final static boolean DEBUG = true;
     static String mode = "UDP";
-    static InetAddress ia;
-    static DatagramSocket datasocket;
-    public static void main (String[] args) {
-        String hostAddress;
-        int tcpPort;
-        int udpPort;
-        int clientId;
+    private static InetAddress ia;
+    static DatagramSocket Usocket;
 
+    private ArrayList<String> commands;
+
+    private int clientId;
+    private int tcpPort;
+    private int udpPort;
+    byte[] buff = new byte[1024];
+    private DatagramPacket dpsend;
+    private DatagramPacket dpget;
+
+    private String hostAddress;
+    private BufferedReader reader;
+    private PrintWriter writer;
+    private PrintStream write;
+
+    public static void main (String[] args) throws Exception{
+        BookClient client = new BookClient();
+        client.parseCommand(args);
+        client.udpConnect();
+        client.processCommand();
+
+    }
+
+    public BookClient(){
+        commands = new ArrayList<>();
+        clientId = -1;
+        tcpPort = 7000;
+        udpPort = 8000;
+        hostAddress = "localhost";
+    }
+
+    private void tcpConnect(){
+        try{
+            @SuppressWarnings("resource")
+            Socket sock = new Socket(hostAddress, tcpPort);
+            InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
+            reader = new BufferedReader(streamReader);
+            writer = new PrintWriter(sock.getOutputStream());
+            System.out.println("TCP networking established");
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void tcpStart(){
+        Thread readerThread = new Thread(new TCPHandler());
+        readerThread.start();
+    }
+
+    private void udpConnect() throws Exception{
+        String str_send = "hello";
+        ia = InetAddress.getByName(hostAddress);
+        Usocket = new DatagramSocket();
+        dpsend = new DatagramPacket(str_send.getBytes(), str_send.length(), ia, udpPort);
+        dpget = new DatagramPacket(buff, 1024);
+        Usocket.send(dpsend);
+    }
+
+    private void udpDisconect() throws Exception{
+        Usocket.disconnect();
+    }
+
+    private void parseCommand(String[] args) throws Exception{
         if (args.length != 2) {
             System.out.println("ERROR: Provide 2 arguments: commandFile, clientId");
             System.out.println("\t(1) <command-file>: file with commands to the server");
@@ -29,89 +80,114 @@ public class BookClient {
 
         String commandFile = args[0];
         clientId = Integer.parseInt(args[1]);
-        hostAddress = "localhost";
-        tcpPort = 7000;// hardcoded -- must match the server's tcp port
-        udpPort = 8000;// hardcoded -- must match the server's udp port
-        try {
-            ia = InetAddress.getByName(hostAddress);
-            datasocket = new DatagramSocket();
-        }catch(UnknownHostException e){
-            e.printStackTrace();
-        }catch(SocketException a){
-            a.printStackTrace();
+
+        Scanner sc = new Scanner(new FileReader(commandFile));
+        write = new PrintStream("out_" + clientId + ".txt", "UTF-8");
+        while(sc.hasNextLine()) {
+            String cmd = sc.nextLine();
+            commands.add(cmd);
         }
-        PrintStream write;
-        try {
-            Scanner sc = new Scanner(new FileReader(commandFile));
-            write = new PrintStream("out_" + clientId + ".txt", "UTF-8");
+    }
 
-            while(sc.hasNextLine()) {
-                String cmd = sc.nextLine();
-                String[] tokens = cmd.split(" ");
-                if (tokens[0].equals("setmode")) {
-                    if(tokens[1].equals("T")){
-                       mode = "TCP";
-                    }else {
-                        mode = "UDP";
-                    }
-                    // TODO: set the mode of communication for sending commands to the server
-                }else if (tokens[0].equals("exit")) {
-                    if (mode.equals("TCPd")){
-                        try {
-                            s.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    else datasocket.close();
+    private void processCommand() throws Exception{
+        for(int i = 0; i < commands.size(); i++) {
+            String cmd = commands.get(i);
+            String[] tokens = cmd.split(" ");
 
-                    System.exit(0);
-
-                    // TODO: send appropriate command to the server
-                } else if ((!tokens[0].equals("borrow") && (!tokens[0].equals("return")) && (!tokens[0].equals("list")) && (!tokens[0].equals("inventory")))){
-                    System.out.println("ERROR: No such command");
+            if (tokens[0].equals("setmode")) {
+                if(tokens[1].equals("T")){
+                    if(mode.equals("UDP"))
+                        mode = "UtoT";
+                    else mode = "TCP";
+                } else {
+                    if(mode.equals("TDP"))
+                        mode = "TtoU";
+                    else mode = "UDP";
                 }
-                String response = "";
-                if(mode.equals("TCP")) {
-                    try {
-                        s = new Socket(hostAddress, tcpPort);
-                        instream = s.getInputStream();
-                        outstream = s.getOutputStream();
-                        in = new Scanner(instream);
-                        out = new PrintWriter(outstream);
-                        mode = "TCPd";
-                    }catch (IOException e){
-                        e.printStackTrace();
-                    }
-                } else if(mode.equals("TCPd")){
-                    out.println(cmd);
-                    out.flush();
-                    response = in.nextLine(); //make a text file and put this string
-
-                }else {
-                    byte[] buf = new byte[cmd.length()];
-                    buf = cmd.getBytes();
-                    sPacket = new DatagramPacket(buf, buf.length, ia, udpPort);
-                    try {
-                        datasocket.send(sPacket);
-                        rPacket = new DatagramPacket(rbuf, rbuf.length);
-                        datasocket.receive(rPacket);
-                        response = new String(rPacket.getData(), 0, rPacket.getLength());  //make a text file and put this string
-                        if(DEBUG){System.out.println(response);}
-
-                    } catch (IOException a) {
-                        a.printStackTrace();
-                    }
-                }
-                write.println(response);
+                commands.remove(i);
             }
+            else if (tokens[0].equals("exit")) {
+
+                commands.remove(i);
+                return;
+            }
+
+            else if((!tokens[0].equals("borrow") && (!tokens[0].equals("return")) && (!tokens[0].equals("list")) && (!tokens[0].equals("inventory")))){
+                System.out.println("ERROR: No such command");
+            }
+
+            String ret = "";
+            if(mode.equals("UDP") || mode.equals("UtoT")) {
+                ret = sendCommand(cmd);
+            }
+
+            else if(mode.equals("TCP") || mode.equals("TtoU")) {
+                ret = sendCommand(cmd);
+            }
+
+            if(mode.equals("UtoT") || mode.equals("TtoU")){
+                break;
+            }
+        }
+
+        if(mode.equals("UtoT")){
+            tcpStart();
+            mode = "TCP";
+        }
+        else if(mode.equals("TtoU")){
+            mode = "TCP";
+        }
+        else {
             System.setOut(write);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException ue){
-            ue.printStackTrace();
-        } catch (IOException ie){
-            ie.printStackTrace();
+        }
+    }
+
+    private String sendCommand(String cmd) throws Exception {
+        String response = "";
+
+        if(mode.equals("UDP") || mode.equals("UtoT")) {
+            byte[] send = new byte[cmd.length()];
+            send = cmd.getBytes();
+            dpsend.setData(send);
+            boolean received = false;
+
+            while(!received){
+                Usocket.send(dpsend);
+                Usocket.receive(dpget);
+                response = new String(dpget.getData(), 0, dpget.getLength());
+                if(DEBUG){System.out.println(response);}
+
+                if(mode.equals("UtoT") && response.equals("T")){
+                    tcpConnect();
+                    udpDisconect();
+
+                } else if(mode.equals("UDP") && !response.equals("U")){
+                    write.println(response);
+                }
+
+                dpget.setLength(1024);
+                received = true;
+            }
+        }
+
+        else if(mode.equals("TDP")) {
+        }
+
+        return response;
+    }
+
+    class TCPHandler implements Runnable {
+
+        TCPHandler() {
+        }
+
+        @Override
+        public void run() {
+            try {
+                processCommand();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
         }
     }
 }

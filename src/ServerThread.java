@@ -2,7 +2,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class ServerThread extends Thread{
     private BookStorage storage;
@@ -22,17 +24,41 @@ public class ServerThread extends Thread{
             if(tag.equals("borrow")) {
                 String name = sc1.next();
                 String book = sc1.next();
-                if(storage.borrow(name, book)){
-                    write.println("Success");
-                }else{
-                    write.println("Failed");
+                int result = storage.borrow(name, book);
+                if(result != -1 && result != -2){
+                    write.println("You request has been approved " + result + " " + name + " " + book);
+                }else if(result == -1){
+                    write.println("Request Failed - Book not available");
+                }else if(result == -2){
+                    write.println("Request Failed - We do not have this book");
                 }
-            }else if(tag.equals("return_1")) {
-
+            }else if(tag.equals("return")) {
+                int id = sc1.nextInt();
+                boolean result = storage.return_1(id);
+                if(result){
+                    write.println(id + " is returned");
+                }else{
+                    write.println(id + " not found, no such borrow record");
+                }
             }else if(tag.equals("list")){
-
+                String name = sc1.next();
+                Map<Integer, String> result = storage.list(name);
+                if(storage.list(name) == null){
+                    write.println("No record found for " + name);
+                }else{
+                    Set<Integer> get = result.keySet();
+                    for(Integer o = get){
+                        String val = result.get(o);
+                        write.println(o + " " + val);
+                    }
+                }
             }else if(tag.equals("inventory")){
-
+                Map<String, Integer> quantity = storage.inventory();
+                Set<String> result = quantity.keySet();
+                for(String good : result){
+                    int val = quantity.get(good);
+                    write.println(good + " " + val);
+                }
             }
         }catch(IOException e){
             e.printStackTrace();

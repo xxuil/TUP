@@ -41,11 +41,17 @@ public class BookServer{
         }
         try{
             DatagramSocket datasocket = new DatagramSocket(udpPort);
-            byte[] buf = new byte[1000];
+            byte[] buf = new byte[1024];
             while(true){
                 spacket = new DatagramPacket(buf, buf.length);
                 datasocket.receive(spacket);
                 byte[] temp = spacket.getData();
+                StringBuilder builder = new StringBuilder();
+                builder.append((char)temp[1]);
+                String modecheck = builder.toString();
+                if(modecheck.equals("T")){
+                    break;
+                }else if()
             }
         }catch(IOException e){
             e.printStackTrace();
@@ -53,12 +59,14 @@ public class BookServer{
 
 
 
-        storage = new BookStorage(inventory);
+        storage = new BookStorage(inventory);           //TCP
         try {
             ServerSocket server = new ServerSocket(tcpPort);
             Socket s;
             while ((s = server.accept()) != null) {
-                //Thread t = new ServerThread(storage, s);
+                ServerThread a = new ServerThread(storage, s);
+                Thread t = new Thread(a);
+                t.start();
             }
         }catch (Exception e){
             e.printStackTrace();

@@ -1,29 +1,137 @@
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class BookServer{
-    static Map<String, Integer> inventory = new HashMap<>();
-    static DatagramPacket rpacket, spacket;
-    public static BookStorage storage;
-    public static void main (String[] args) {
-        int tcpPort;
-        int udpPort;
+    private final static boolean DEBUG = true;
+
+    private static BookStorage storage;
+
+    private int udpPort;
+    private int byteLength;
+    private static boolean isOpen;
+
+    private static ArrayList<PrintWriter> oos = new ArrayList<>();
+    private static ArrayList<String> clientNameList = new ArrayList<>();
+    private static HashMap<String, Client> userMap = new HashMap<>();
+
+
+    public BookServer(){
+        udpPort = 8000;
+        byteLength = 1024;
+        isOpen = true;
+    }
+
+    private void setupUPD() throws Exception{
+        String send = "UServer";
+        byte[] buf = new byte[byteLength];
+        DatagramSocket socket = new DatagramSocket(udpPort);
+        DatagramPacket dpget = new DatagramPacket(buf, byteLength);
+
+        if(DEBUG){System.out.println("UDP Server On");}
+
+        while(isOpen){
+            socket.receive(dpget);
+            if(DEBUG){System.out.println("Server received data from client: ");}
+            String receive = new String(dpget.getData(), 0, dpget.getLength());
+            int port = dpget.getPort();
+            if(DEBUG){System.out.println(receive + " from " + dpget.getAddress().getHostAddress() + ": "
+                    + dpget.getPort());}
+
+            send = processCommand(receive);
+
+            DatagramPacket dpsend = new DatagramPacket(send.getBytes(), send.length(),
+                    dpget.getAddress(), dpget.getPort());
+            socket.send(dpsend);
+            dpget.setLength(byteLength);
+
+        }
+        socket.close();
+    }
+
+    private static String processCommand(String command){
+        String message = "";
+        String[] parse = command.split(" ");
+        if(parse[0].equals("setmode")) {
+            if(parse[1].equals("U"))
+                return "U";
+            else if(parse[1].equals("T")){
+                Thread TCP = new Thread(new TCPHandler());
+                TCP.start();
+                return "T";
+            }
+        }
+        else if(parse[0].equals("borrow")){
+            String name = parse[1];
+            String book = parse[2];
+            int result = storage.borrow(name, book);
+            if(result != -1 && result != -2){
+                message = "You request has been approved " + result + " " + name + " " + book;
+            }else if(result == -1){
+                message = "Request Failed - Book not available";
+            }else{
+                message = "Request Failed - We do not have this book";
+            }
+            return message;
+        }
+
+        else if(parse[0].equals("return")){
+            int id = Integer.parseInt(parse[1]);
+            boolean result = storage.return_1(id);
+            if(result){
+                message = id + " is returned";
+            }else{
+                message = id + " not found, no such borrow record";
+            }
+        }
+
+        else if(parse[0].equals("list")){
+            String name = parse[1];
+            Map<Integer, String> result = storage.list(name);
+            if(storage.list(name) == null){
+                message = "No record found for " + name;
+            }else{
+                Set<Integer> get = result.keySet();
+                for(Integer o : get){
+                    String val = result.get(o);
+                    message = message + o + " " + val +"\n";
+                }
+            }
+        }
+
+        else if(parse[0].equals("inventory")){
+            Map<String, Integer> quantity = storage.inventory();
+            Set<String> result = quantity.keySet();
+            for(String good : result){
+                int val = quantity.get(good);
+                message = message + good + " " + val + "\n";
+            }
+
+            return message;
+        }
+        else{
+            if(DEBUG){System.out.println("ERROR");}
+            return "";
+        }
+        return "";
+    }
+
+    public static void main (String[] args) throws Exception{
+        parseInput(args);
+        BookServer UDP = new BookServer();
+        UDP.setupUPD();
+    }
+
+    private static void parseInput(String[] args){
         if (args.length != 1) {
-            System.out.println("ERROR: Provide 1 argument: input file containing initial inventory");
+            System.out.println("ERROR: No Argument");
             System.exit(-1);
         }
+
+        Map<String, Integer> inventory = new HashMap<>();
         String fileName = args[0];
-        tcpPort = 7000;
-        udpPort = 8000;
         String book = "";
+
         try{
             Scanner sc = new Scanner(new FileReader(fileName));
             while(sc.hasNext()){
@@ -36,41 +144,34 @@ public class BookServer{
                     book = book + " ";
                 }
             }
-        }catch (FileNotFoundException e){
+        }
+        catch (FileNotFoundException e){
             e.printStackTrace();
         }
-        try{
-            DatagramSocket datasocket = new DatagramSocket(udpPort);
-            byte[] buf = new byte[1024];
-            while(true){
-                spacket = new DatagramPacket(buf, buf.length);
-                datasocket.receive(spacket);
-                byte[] temp = spacket.getData();
-                StringBuilder builder = new StringBuilder();
-                builder.append((char)temp[1]);
-                String modecheck = builder.toString();
-                if(modecheck.equals("T")){
-                    break;
-                }else if()
+
+        storage = new BookStorage(inventory);
+    }
+
+    static class TCPHandler implements Runnable{
+        private int tcpPort;
+        @Override
+        public void run(){
+            try{
+                @SuppressWarnings("resource")
+                ServerSocket serverSock = new ServerSocket(tcpPort);
+                if(DEBUG){System.out.println("TCP established");}
+
+                while(isOpen){
+                    Socket Tsocket = serverSock.accept();
+
+                    ServerThread client = new ServerThread(storage, Tsocket);
+                    Thread t = new Thread(client);
+                    t.start();
+                }
             }
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-
-
-
-        storage = new BookStorage(inventory);           //TCP
-        try {
-            ServerSocket server = new ServerSocket(tcpPort);
-            Socket s;
-            while ((s = server.accept()) != null) {
-                ServerThread a = new ServerThread(storage, s);
-                Thread t = new Thread(a);
-                t.start();
+            catch (Exception e){
+                e.printStackTrace();
             }
-        }catch (Exception e){
-            e.printStackTrace();
         }
-        // TODO: handle request from clients
     }
 }

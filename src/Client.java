@@ -9,11 +9,11 @@ public class Client {
     private static final int MAXNUM = 5;
 
     public static void main(String args[])throws Exception{
-        String str_send = "Hello UDPserver";
+        String str_send = "Hello Server";
         byte[] buf = new byte[1024];
         DatagramSocket socket = new DatagramSocket(9000);
         InetAddress loc = InetAddress.getLocalHost();
-        DatagramPacket dpsend = new DatagramPacket(str_send.getBytes(),str_send.length(),loc,3000);
+        DatagramPacket dpsend = new DatagramPacket(str_send.getBytes(),str_send.length(),loc,8000);
         DatagramPacket dpget = new DatagramPacket(buf, 1024);
         socket.setSoTimeout(TIMEOUT);
         int tries = 0;
@@ -38,13 +38,13 @@ public class Client {
                 System.out.println(str_get + " from " + dpget.getAddress().getHostAddress() + ": "
                         + dpget.getPort());
                 dpget.setLength(1024);
-
+                received = false;
             }
             else{
                 System.out.println("No response -- abort");
             }
 
-            socket.close();
+            //socket.close();
         }
     }
 }

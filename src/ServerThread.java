@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-public class ServerThread extends Thread{
+public class ServerThread implements Runnable{
     private BookStorage storage;
     private Socket s;
     public ServerThread(BookStorage storage, Socket s){

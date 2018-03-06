@@ -10,7 +10,7 @@ public class BookClient {
     static DatagramSocket Usocket;
 
     private ArrayList<String> commands;
-
+    private boolean init = false;
     private int clientId;
     private int tcpPort;
     private int udpPort;
@@ -56,9 +56,13 @@ public class BookClient {
         String str_send = "hello";
         ia = InetAddress.getByName(hostAddress);
         Usocket = new DatagramSocket();
-        dpsend = new DatagramPacket(str_send.getBytes(), str_send.length(), ia, udpPort);
-        dpget = new DatagramPacket(buff, 1024);
-        Usocket.send(dpsend);
+        if(!init){
+            dpsend = new DatagramPacket(str_send.getBytes(), str_send.length(), ia, udpPort);
+            dpget = new DatagramPacket(buff, 1024);
+            Usocket.send(dpsend);
+            init = true;
+        }
+
         System.out.println("UDP networking established");
     }
 
@@ -105,7 +109,7 @@ public class BookClient {
             }
 
             else if (tokens[0].equals("exit")) {
-
+                sendCommand("exit");
                 commands.remove(0);
                 System.setOut(write);
                 return;
@@ -161,7 +165,9 @@ public class BookClient {
                     udpDisconect();
 
                 } else if(mode.equals("UDP") && !response.equals("U")){
-                    write.println(response);
+                    if(!response.equals("exit")) {
+                        write.println(response);
+                    }
                 }
 
                 dpget.setLength(1024);
@@ -176,13 +182,26 @@ public class BookClient {
             if(DEBUG) System.out.println("Client finished sending commands");
 
             while ((response = reader.readLine()) != null) {
-                if(!(response.equals("U") || response.equals("T"))) {
+                if(!(response.equals("U&&")) && !(response.equals("T&&"))) {
+                    String[] set = response.split("&&");
+                    response = "";
+
+                    for(String temp : set){
+                        response = response + temp + "\n";
+                    }
+
+                    int i = response.lastIndexOf("\n");
+                    response = response.substring(0, i);
+
                     if (DEBUG) System.out.println("Client received: " + response);
-                    write.println(response);
+                    if(!response.equals("exit")) {
+                        write.println(response);
+                    }
                     break;
-                }else if(mode.equals("TtoU") && response.equals("U")){
+                }else if(mode.equals("TtoU") && response.equals("U&&")){
                     udpConnect();
-                    sock.close();//tcpdisconnect
+                    sock.close();
+                    break;//tcpdisconnect
                 }
             }
         }

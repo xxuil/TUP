@@ -1,7 +1,9 @@
-setmode T
+setmode U
 borrow Mike "Divergent"
+setmode T
 list Mike
 return 1
+setmode U
 list Mike
 inventory
 exit

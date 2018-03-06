@@ -63,18 +63,20 @@ public class TCPServer extends BookServer implements Runnable {
                     inven1.println(ret);
                     flag1 = false;
                 }
+
                 if(DEBUG) System.out.println("Message output from ClientHandler: " + ret);
 
                 String[] set = ret.split("\n");
                 ret = "";
 
                 for(String temp : set){
-                    ret = ret + temp + "&";
+                    ret = ret + temp + "&&";
                 }
 
                 writer.println(ret);
                 writer.flush();
                 if(DEBUG) System.out.println("Server sent message");
+
                 if(s.isClosed()){
                     break;
                 }

@@ -3,7 +3,7 @@ import java.net.*;
 import java.util.*;
 
 public class BookServer{
-    protected final static boolean DEBUG = true;
+    protected final static boolean DEBUG = false;
     protected static int clients = 0;
     protected static BookStorage storage;
     private int udpPort;
@@ -171,6 +171,7 @@ public class BookServer{
             if(clients == 0){
                 printInvent();
             }
+            return "exit";
         }
         else{
             if(DEBUG){System.out.println("ERROR");}

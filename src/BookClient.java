@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.nio.Buffer;
 import java.util.*;
 
 public class BookClient {
@@ -16,9 +17,9 @@ public class BookClient {
     byte[] buff = new byte[1024];
     private DatagramPacket dpsend;
     private DatagramPacket dpget;
-
+    private Socket sock;
     private String hostAddress;
-    private BufferedReader reader;
+    private Scanner reader;
     private PrintWriter writer;
     private PrintStream write;
 
@@ -40,21 +41,16 @@ public class BookClient {
 
     private void tcpConnect(){
         try{
-            @SuppressWarnings("resource")
-            Socket sock = new Socket(hostAddress, tcpPort);
-            InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
-            reader = new BufferedReader(streamReader);
+
+            sock = new Socket(hostAddress, tcpPort);
+            reader = new Scanner(sock.getInputStream());
+            reader.useDelimiter("\r\n");
             writer = new PrintWriter(sock.getOutputStream());
             System.out.println("TCP networking established");
         }
         catch(Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void tcpStart(){
-        Thread readerThread = new Thread(new TCPHandler());
-        readerThread.start();
     }
 
     private void udpConnect() throws Exception{
@@ -64,6 +60,7 @@ public class BookClient {
         dpsend = new DatagramPacket(str_send.getBytes(), str_send.length(), ia, udpPort);
         dpget = new DatagramPacket(buff, 1024);
         Usocket.send(dpsend);
+        System.out.println("UDP networking established");
     }
 
     private void udpDisconect() throws Exception{
@@ -82,7 +79,9 @@ public class BookClient {
         clientId = Integer.parseInt(args[1]);
 
         Scanner sc = new Scanner(new FileReader(commandFile));
-        write = new PrintStream("out_" + clientId + ".txt", "UTF-8");
+        File txtfile = new File("./src", "out_" + clientId + ".txt");
+        FileOutputStream fout = new FileOutputStream(txtfile);
+        write = new PrintStream(fout);
         while(sc.hasNextLine()) {
             String cmd = sc.nextLine();
             commands.add(cmd);
@@ -100,15 +99,17 @@ public class BookClient {
                         mode = "UtoT";
                     else mode = "TCP";
                 } else {
-                    if(mode.equals("TDP"))
+                    if(mode.equals("TCP"))
                         mode = "TtoU";
                     else mode = "UDP";
                 }
                 commands.remove(i);
+                i--;
             }
             else if (tokens[0].equals("exit")) {
 
                 commands.remove(i);
+               // System.setOut(write);
                 return;
             }
 
@@ -126,25 +127,19 @@ public class BookClient {
             }
 
             if(mode.equals("UtoT") || mode.equals("TtoU")){
-                break;
+                if(mode.equals("UtoT")){
+                    mode = "TCP";
+                }else if(mode.equals("TtoU")){
+                    mode = "UDP";           //change it to UDP
+                }
             }
-        }
-
-        if(mode.equals("UtoT")){
-            tcpStart();
-            mode = "TCP";
-        }
-        else if(mode.equals("TtoU")){
-            mode = "TCP";
-        }
-        else {
-            System.setOut(write);
         }
     }
 
     private String sendCommand(String cmd) throws Exception {
         String response = "";
-
+        boolean flag = false;
+        boolean flag1 = false;
         if(mode.equals("UDP") || mode.equals("UtoT")) {
             byte[] send = new byte[cmd.length()];
             send = cmd.getBytes();
@@ -155,6 +150,10 @@ public class BookClient {
                 Usocket.send(dpsend);
                 Usocket.receive(dpget);
                 response = new String(dpget.getData(), 0, dpget.getLength());
+                if(response.contains("inventory")){
+                    response = response.substring(9, response.length());
+                    flag = true;
+                }
                 if(DEBUG){System.out.println(response);}
 
                 if(mode.equals("UtoT") && response.equals("T")){
@@ -170,24 +169,24 @@ public class BookClient {
             }
         }
 
-        else if(mode.equals("TDP")) {
+        else if(mode.equals("TCP") || mode.equals("TtoU")) {
+            if(DEBUG) System.out.println("Client is trying to send commands" + cmd);
+            writer.println(cmd);
+            writer.flush();
+            if(DEBUG) System.out.println("Client finished sending commands");
+            response = reader.next();
+            if(!(response.equals("U") || response.equals("T"))) {
+                if (DEBUG) System.out.println("Client received " + response);
+                if(response.contains("\n")){
+                    // divide them up
+                }
+                write.println(response);
+            }else if(mode.equals("TtoU") && response.equals("U")){
+                udpConnect();
+                sock.close();//tcpdisconnect
+            }
         }
 
         return response;
-    }
-
-    class TCPHandler implements Runnable {
-
-        TCPHandler() {
-        }
-
-        @Override
-        public void run() {
-            try {
-                processCommand();
-            } catch (Exception e){
-                e.printStackTrace();
-            }
-        }
     }
 }

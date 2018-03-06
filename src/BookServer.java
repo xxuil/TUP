@@ -18,7 +18,9 @@ public class BookServer{
         BookServer UDP = new BookServer();
         UDP.setupUPD();
     }
-
+    public static Map<String, Integer> inven(){
+        return storage.inventory();
+    }
     private static void parseInput(String[] args){
         if (args.length != 1) {
             System.out.println("ERROR: No Argument");
@@ -34,6 +36,7 @@ public class BookServer{
             while(sc.hasNext()){
                 if(sc.hasNextInt()){
                     int num = sc.nextInt();
+                    book = book.substring(0, book.length() - 1);
                     inventory.put(book, num);
                     book = "";
                 }else {
@@ -111,7 +114,7 @@ public class BookServer{
             for(int i = 2; i < parse.length; i++){
                 book = book + parse[i] + " ";
             }
-
+            book = book.substring(0, book.length()-1);
             int result = storage.borrow(name, book);
             if(result != -1 && result != -2){
                 message = "You request has been approved " + result + " " + name + " " + book;
@@ -160,7 +163,7 @@ public class BookServer{
             }
             int i = message.lastIndexOf("\n");
             message = message.substring(0, i);
-            return message;
+            return "inventory" + message;
         }
         else{
             if(DEBUG){System.out.println("ERROR");}

@@ -21,14 +21,22 @@ public class BookStorage {
         int numberleft = inventory.get(bookname);
         if(numberleft == 0){
             return -1;
-        }else{
-            count++;
-            Map<Integer, String> good = new HashMap<>();
-            good.put(count, bookname);
-            Students student = new Students(stdname, good);
-            students.add(student);
-            inventory.put(bookname, numberleft - 1);
         }
+        for(Students sample : students) {
+            if(sample.name.equals(stdname)) {
+                count++;
+                Map<Integer, String > good = sample.bookID;
+                good.put(count, bookname);
+                inventory.put(bookname, numberleft-1);
+                return count;
+            }
+        }
+        count++;
+        Map<Integer, String> good = new HashMap<>();
+        good.put(count, bookname);
+        Students student = new Students(stdname, good);
+        students.add(student);
+        inventory.put(bookname, numberleft - 1);
         return count;
     }
     public synchronized boolean return_1(int input){

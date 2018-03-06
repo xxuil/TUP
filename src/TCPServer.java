@@ -30,8 +30,13 @@ public class TCPServer extends BookServer implements Runnable {
         private Socket s;
         private PrintWriter writer;
         private Scanner reader;
-
+        private File invfile;
+        private FileOutputStream iout;
+        private PrintStream inven1;
         ClientHandler(Socket s, PrintWriter writer) throws IOException{
+            File invfile = new File("./src", "inventory.txt");
+            FileOutputStream iout = new FileOutputStream(invfile);
+            inven1 = new PrintStream(iout);
             this.s = s;
             this.writer = writer;
         }
@@ -44,11 +49,20 @@ public class TCPServer extends BookServer implements Runnable {
                 e.printStackTrace();
             }
             String message;
+            boolean flag1 = false;
             while (reader.hasNext()) {
                 if(DEBUG) System.out.println("Server trying to receive message");
                 message = reader.nextLine();
                 if(DEBUG) System.out.println("Message from ClientHandler " + message);
                 String ret = processCommand(message);
+                if(ret.contains("inventory")){
+                    ret = ret.substring(9, ret.length());
+                    flag1 = true;
+                }
+                if(flag1){
+                    inven1.println(ret);
+                    flag1 = false;
+                }
                 if(DEBUG) System.out.println("Message output from ClientHandler " + ret);
                 writer.println(ret);
                 writer.flush();

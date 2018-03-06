@@ -8,6 +8,7 @@ public class BookServer{
     private int udpPort;
     private int byteLength;
     protected static boolean isOpen;
+    private PrintStream inven1;
     private static Thread TCP = null;
     private static ArrayList<PrintWriter> oos = new ArrayList<>();
     private static ArrayList<String> clientNameList = new ArrayList<>();
@@ -63,7 +64,10 @@ public class BookServer{
         byte[] buf = new byte[byteLength];
         DatagramSocket socket = new DatagramSocket(udpPort);
         DatagramPacket dpget = new DatagramPacket(buf, byteLength);
-
+        File invfile = new File("./src", "inventory.txt");
+        FileOutputStream iout = new FileOutputStream(invfile);
+        inven1 = new PrintStream(iout);
+        boolean flag1 = false;
         if(DEBUG){System.out.println("UDP Server On");}
 
         while(isOpen){
@@ -75,7 +79,14 @@ public class BookServer{
                     dpget.getAddress().getHostAddress() + ": " + dpget.getPort());}
 
             send = processCommand(receive);
-
+            if(send.contains("inventory")){
+                send = send.substring(9, send.length());
+                flag1 = true;
+            }
+            if(flag1){
+                inven1.println(send);
+                flag1 = false;
+            }
             if(!send.equals("")){
                 if(DEBUG){System.out.println("Server send: " + send);}
 

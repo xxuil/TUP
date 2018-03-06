@@ -28,7 +28,6 @@ public class BookClient {
         client.parseCommand(args);
         client.udpConnect();
         client.processCommand();
-
     }
 
     public BookClient(){
@@ -89,8 +88,8 @@ public class BookClient {
     }
 
     private void processCommand() throws Exception{
-        for(int i = 0; i < commands.size(); i++) {
-            String cmd = commands.get(i);
+        while(!commands.isEmpty()){
+            String cmd = commands.get(0);
             String[] tokens = cmd.split(" ");
 
             if (tokens[0].equals("setmode")) {
@@ -103,13 +102,12 @@ public class BookClient {
                         mode = "TtoU";
                     else mode = "UDP";
                 }
-                commands.remove(i);
-                i--;
             }
+
             else if (tokens[0].equals("exit")) {
 
-                commands.remove(i);
-               // System.setOut(write);
+                commands.remove(0);
+                System.setOut(write);
                 return;
             }
 
@@ -133,6 +131,8 @@ public class BookClient {
                     mode = "UDP";           //change it to UDP
                 }
             }
+
+            commands.remove(0);
         }
     }
 

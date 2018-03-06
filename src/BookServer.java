@@ -174,7 +174,7 @@ public class BookServer{
             }
             int i = message.lastIndexOf("\n");
             message = message.substring(0, i);
-            return "inventory" + message;
+            return message;
         }
         else{
             if(DEBUG){System.out.println("ERROR");}

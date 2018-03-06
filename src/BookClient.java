@@ -19,7 +19,7 @@ public class BookClient {
     private DatagramPacket dpget;
     private Socket sock;
     private String hostAddress;
-    private Scanner reader;
+    private BufferedReader reader;
     private PrintWriter writer;
     private PrintStream write;
 
@@ -42,8 +42,8 @@ public class BookClient {
         try{
 
             sock = new Socket(hostAddress, tcpPort);
-            reader = new Scanner(sock.getInputStream());
-            reader.useDelimiter("\r\n");
+            InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
+            reader = new BufferedReader(streamReader);
             writer = new PrintWriter(sock.getOutputStream());
             System.out.println("TCP networking established");
         }
@@ -170,20 +170,20 @@ public class BookClient {
         }
 
         else if(mode.equals("TCP") || mode.equals("TtoU")) {
-            if(DEBUG) System.out.println("Client is trying to send commands" + cmd);
+            if(DEBUG) System.out.println("Client is trying to send commands: " + cmd);
             writer.println(cmd);
             writer.flush();
             if(DEBUG) System.out.println("Client finished sending commands");
-            response = reader.next();
-            if(!(response.equals("U") || response.equals("T"))) {
-                if (DEBUG) System.out.println("Client received " + response);
-                if(response.contains("\n")){
-                    // divide them up
+
+            while ((response = reader.readLine()) != null) {
+                if(!(response.equals("U") || response.equals("T"))) {
+                    if (DEBUG) System.out.println("Client received: " + response);
+                    write.println(response);
+                    break;
+                }else if(mode.equals("TtoU") && response.equals("U")){
+                    udpConnect();
+                    sock.close();//tcpdisconnect
                 }
-                write.println(response);
-            }else if(mode.equals("TtoU") && response.equals("U")){
-                udpConnect();
-                sock.close();//tcpdisconnect
             }
         }
 

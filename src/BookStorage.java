@@ -1,10 +1,4 @@
-import com.sun.xml.internal.ws.api.ha.StickyFeature;
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class BookStorage {
     private Map<String, Integer> inventory;
@@ -47,6 +41,10 @@ public class BookStorage {
             if(result.get(input) != null){
                 int a = inventory.get(returnval);
                 inventory.put(returnval, a + 1);
+                result.remove(input);
+                if(result.isEmpty()){
+                    students.remove(i);
+                }
                 return true;
             }
         }

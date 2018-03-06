@@ -1,8 +1,7 @@
-setmode U
-borrow Mike "The Letter"
-borrow Jack "The Letter"
-borrow Lucy "Divergent"
+setmode T
+borrow Mike "Divergent"
 list Mike
 return 1
+list Mike
 inventory
 exit

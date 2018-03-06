@@ -4,6 +4,7 @@ import java.util.*;
 
 public class BookServer{
     protected final static boolean DEBUG = true;
+    protected static int clients = 0;
     protected static BookStorage storage;
     private int udpPort;
     private int byteLength;
@@ -104,6 +105,7 @@ public class BookServer{
 
         if(parse[0].equals("hello")){
             if(DEBUG){System.out.println("Initial connection established");}
+            clients++;
         }
 
         else if(parse[0].equals("setmode")) {
@@ -176,10 +178,20 @@ public class BookServer{
             message = message.substring(0, i);
             return message;
         }
+        else if(parse[0].equals("exit")) {
+            clients--;
+            if(clients == 0){
+                printInvent();
+            }
+        }
         else{
             if(DEBUG){System.out.println("ERROR");}
             return "";
         }
         return "";
+    }
+
+    protected static void printInvent(){
+
     }
 }

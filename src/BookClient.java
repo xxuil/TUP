@@ -4,10 +4,10 @@ import java.nio.Buffer;
 import java.util.*;
 
 public class BookClient {
-    private final static boolean DEBUG = true;
-    static String mode = "UDP";
+    private final static boolean DEBUG = false;
+    private String mode = "UDP";
     private static InetAddress ia;
-    static DatagramSocket Usocket;
+    private DatagramSocket Usocket;
 
     private ArrayList<String> commands;
     private boolean init = false;
@@ -40,7 +40,6 @@ public class BookClient {
 
     private void tcpConnect(){
         try{
-
             sock = new Socket(hostAddress, tcpPort);
             InputStreamReader streamReader = new InputStreamReader(sock.getInputStream());
             reader = new BufferedReader(streamReader);

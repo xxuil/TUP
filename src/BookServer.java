@@ -9,6 +9,7 @@ public class BookServer{
     private int udpPort;
     private int byteLength;
     protected static boolean isOpen;
+    protected static boolean tcpOn = false;
     private static Thread TCP = null;
     private static ArrayList<PrintWriter> oos = new ArrayList<>();
     private static ArrayList<String> clientNameList = new ArrayList<>();
@@ -105,6 +106,8 @@ public class BookServer{
                     TCP = new Thread(new TCPServer());
                     TCP.start();
                 }
+
+                while(tcpOn == false){}
                 return "T";
             }
         }

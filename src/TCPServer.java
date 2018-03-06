@@ -10,6 +10,9 @@ public class TCPServer extends BookServer implements Runnable {
             @SuppressWarnings("resource")
             ServerSocket serverSock = new ServerSocket(tcpPort);
             if(DEBUG){System.out.println("TCP established");}
+
+            tcpOn = true;
+
             Socket Tsocket;
             while((Tsocket = serverSock.accept()) != null){
                 int port = Tsocket.getPort();

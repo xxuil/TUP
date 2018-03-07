@@ -202,6 +202,9 @@ public class BookClient {
                     sock.close();
                     break;//tcpdisconnect
                 }
+                else if(mode.equals("TCP") && response.equals("T&&")){
+                    break;
+                }
             }
         }
 

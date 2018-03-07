@@ -1,7 +1,9 @@
-setmode T
-borrow Mike "Divergent"
-borrow Mike "Divergent"
-borrow Mike "Divergent"
+setmode U
+borrow Lucy "b"
+borrow Lucy "b"
+borrow Lucy "b"
+borrow Lucy "b"
+borrow Lucy "b"
 list Mike
 inventory
 exit

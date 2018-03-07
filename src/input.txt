@@ -1,4 +1,2 @@
-"The Letter" 1
-"The Great Gatsby" 15
-"Divergent" 10
-"The Count of Monte Cristo" 17
+"a" 100
+"b" 100

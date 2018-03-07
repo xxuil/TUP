@@ -5,7 +5,5 @@ borrow Mike "a"
 borrow Mike "b"
 borrow Mike "b"
 borrow Mike "b"
-return 1
-return 2
 inventory
 exit

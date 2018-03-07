@@ -1,18 +1,17 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BookServer{
     protected final static boolean DEBUG = false;
-    protected static int clients = 0;
+    protected static AtomicInteger clients = new AtomicInteger(0);
     protected static BookStorage storage;
     private int udpPort;
     private int byteLength;
     protected static boolean isOpen;
     protected static boolean tcpOn = false;
     private static Thread TCP = null;
-    private static ArrayList<PrintWriter> oos = new ArrayList<>();
-    private static ArrayList<String> clientNameList = new ArrayList<>();
     //private static HashMap<String, Client> userMap = new HashMap<>();
 
     public static void main (String[] args) throws Exception{
@@ -20,9 +19,11 @@ public class BookServer{
         BookServer UDP = new BookServer();
         UDP.setupUPD();
     }
-    public static Map<String, Integer> inven(){
+
+    protected static Map<String, Integer> inven(){
         return storage.inventory();
     }
+
     private static void parseInput(String[] args){
         if (args.length != 1) {
             System.out.println("ERROR: No Argument");
@@ -94,7 +95,7 @@ public class BookServer{
 
         if(parse[0].equals("hello")){
             if(DEBUG){System.out.println("Initial connection established");}
-            clients++;
+            clients.incrementAndGet();
         }
 
         else if(parse[0].equals("setmode")) {
@@ -107,55 +108,61 @@ public class BookServer{
                     TCP.start();
                 }
 
-                while(tcpOn == false){}
+                while(!tcpOn){}
                 return "T";
             }
         }
         else if(parse[0].equals("borrow")){
-            String name = parse[1];
-            String book = "";
+            synchronized (storage){
+                String name = parse[1];
+                String book = "";
 
-            for(int i = 2; i < parse.length; i++){
-                book = book + parse[i] + " ";
-            }
-            book = book.substring(0, book.length()-1);
-            int result = storage.borrow(name, book);
-            if(result != -1 && result != -2){
-                message = "You request has been approved " + result + " " + name + " " + book;
-            }else if(result == -1){
-                message = "Request Failed - Book not available";
-            }else{
-                message = "Request Failed - We do not have this book";
+                for(int i = 2; i < parse.length; i++){
+                    book = book + parse[i] + " ";
+                }
+                book = book.substring(0, book.length()-1);
+                int result = storage.borrow(name, book);
+                if(result != -1 && result != -2){
+                    message = "You request has been approved " + result + " " + name + " " + book;
+                }else if(result == -1){
+                    message = "Request Failed - Book not available";
+                }else{
+                    message = "Request Failed - We do not have this book";
+                }
             }
             return message;
         }
 
         else if(parse[0].equals("return")){
-            int id = Integer.parseInt(parse[1]);
-            boolean result = storage.return_1(id);
-            if(result){
-                message = id + " is returned";
-            }else{
-                message = id + " not found, no such borrow record";
+            synchronized (storage){
+                int id = Integer.parseInt(parse[1]);
+                boolean result = storage.return_1(id);
+                if(result){
+                    message = id + " is returned";
+                }else{
+                    message = id + " not found, no such borrow record";
+                }
             }
             return message;
         }
 
         else if(parse[0].equals("list")){
-            String name = parse[1];
-            Map<Integer, String> result = storage.list(name);
-            if(storage.list(name) == null){
-                message = "No record found for " + name + "\n";
-            }else{
-                Set<Integer> get = result.keySet();
-                for(Integer o : get){
-                    String val = result.get(o);
-                    message = message + o + " " + val +"\n";
+            synchronized (storage){
+                String name = parse[1];
+                Map<Integer, String> result = storage.list(name);
+                if(storage.list(name) == null){
+                    message = "No record found for " + name + "\n";
+                }else{
+                    Set<Integer> get = result.keySet();
+                    for(Integer o : get){
+                        String val = result.get(o);
+                        message = message + o + " " + val +"\n";
+                    }
                 }
+                int i = message.lastIndexOf("\n");
+                message = message.substring(0, i);
+                return message;
             }
-            int i = message.lastIndexOf("\n");
-            message = message.substring(0, i);
-            return message;
         }
 
         else if(parse[0].equals("inventory")){
@@ -170,8 +177,8 @@ public class BookServer{
             return message;
         }
         else if(parse[0].equals("exit")) {
-            clients--;
-            if(clients == 0){
+            clients.decrementAndGet();
+            if(clients.intValue() == 0){
                 printInvent();
             }
             return "exit";
@@ -204,5 +211,7 @@ public class BookServer{
         }catch (FileNotFoundException e){
             e.printStackTrace();
         }
+
+        System.exit(0);
     }
 }
